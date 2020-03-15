@@ -54,7 +54,6 @@ assign cfg_bus = cfg_bus_i;
 logic                        rs1_read_v     , rs2_read_v;
 logic [dword_width_p-1:0]    rs1_reg_data   , rs2_reg_data;
 logic [reg_addr_width_p-1:0] rs1_addr_r     , rs2_addr_r,      rd_addr_r;
-logic [reg_addr_width_p-1:0] rs1_reread_addr, rs2_reread_addr;
 logic [dword_width_p-1:0]    rd_data_r;
 
 localparam rf_els_lp = 2**reg_addr_width_p;
@@ -69,21 +68,20 @@ bsg_mem_2r1w_sync
    ,.w_data_i(cfg_bus.irf_w_v ? cfg_bus.irf_data : rd_data_i)
 
    ,.r0_v_i(cfg_bus.irf_r_v | rs1_read_v)
-   ,.r0_addr_i(cfg_bus.irf_r_v ? cfg_bus.irf_addr : rs1_reread_addr)
+   ,.r0_addr_i(cfg_bus.irf_r_v ? cfg_bus.irf_addr : rs1_addr_r)
    ,.r0_data_o(rs1_reg_data)
 
    ,.r1_v_i(rs2_read_v)
-   ,.r1_addr_i(rs2_reread_addr)
+   ,.r1_addr_i(rs2_addr_r)
    ,.r1_data_o(rs2_reg_data)
    );
 assign cfg_data_o = rs1_reg_data;
 
 // Save the last issued register addresses
-bsg_dff_reset_en 
+bsg_dff_en_bypass
  #(.width_p(2*reg_addr_width_p))
  rs_addr_reg
   (.clk_i(clk_i)
-   ,.reset_i(reset_i)
    ,.en_i(rs1_r_v_i | rs2_r_v_i)
 
    ,.data_i({rs1_addr_i, rs2_addr_i})
@@ -91,8 +89,8 @@ bsg_dff_reset_en
    );
 
 logic fwd_rs1_r, fwd_rs2_r;
-wire fwd_rs1  = rd_w_v_i & (rd_addr_i == rs1_reread_addr);
-wire fwd_rs2  = rd_w_v_i & (rd_addr_i == rs2_reread_addr);
+wire fwd_rs1  = rd_w_v_i & (rd_addr_i == rs1_addr_r);
+wire fwd_rs2  = rd_w_v_i & (rd_addr_i == rs2_addr_r);
 bsg_dff
  #(.width_p(2+dword_width_p))
  rw_fwd_reg
@@ -108,11 +106,6 @@ always_comb
     //   nasty warnings and possible power sink.
     rs1_read_v = ~fwd_rs1 & ~cfg_bus.irf_r_v & ~cfg_bus.irf_w_v;
     rs2_read_v = ~fwd_rs2 & ~cfg_bus.irf_r_v & ~cfg_bus.irf_w_v;
-  
-    // If we have issued a new instruction, use input address to read, 
-    //   else use last request address to read
-    rs1_reread_addr = rs1_r_v_i ? rs1_addr_i : rs1_addr_r;
-    rs2_reread_addr = rs2_r_v_i ? rs2_addr_i : rs2_addr_r;
 end
 
 // Forward if we read/wrote, else pass out the register data
