@@ -89,7 +89,7 @@ always_ff @(negedge delay_li)
     // TODO: For some reason, we're getting 0 PC/instr pairs. Either to do with nops or exceptions
     if (commit_fifo_yumi_li & commit_v_r & commit_pc_r != '0)
       begin
-        $fwrite(file, "%x %x %x %x ", mhartid_i, commit_pc_r, commit_instr_r, itag_cnt);
+        $fwrite(file, "[%t]: %x %x %x %x ", $time, mhartid_i, commit_pc_r, commit_instr_r, itag_cnt);
         if (rd_w_v_i)
           $fwrite(file, "%x %x", rd_addr_i, rd_data_i);
         $fwrite(file, "\n");
