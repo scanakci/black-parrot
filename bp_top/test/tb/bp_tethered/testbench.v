@@ -386,7 +386,7 @@ bind bp_be_top
        );
 
   bind bp_be_dcache
-    bp_nonsynth_cache_tracer
+    bp_nonsynth_dcache_tracer
      #(.bp_params_p(bp_params_p)
       ,.assoc_p(dcache_assoc_p)
       ,.sets_p(dcache_sets_p)
@@ -400,27 +400,40 @@ bind bp_be_top
 
        ,.mhartid_i(cfg_bus_cast_i.core_id)
 
-       ,.v_tl_r(v_tl_r)
+       //,.v_i()
+       //,.ready_o()
 
        ,.v_tv_r(v_tv_r)
+       ,.miss_tv(miss_tv)
        ,.addr_tv_r(paddr_tv_r)
+       ,.data_tv_r(data_tv_r)
+
+       ,.fencei_op_tv_r(fencei_op_tv_r)
+
+       ,.load_op_tv_r(load_op_tv_r)
+       ,.load_hit_tv(load_hit_tv)
+       ,.load_miss_tv(load_miss_tv)
+       ,.store_op_tv_r(store_op_tv_r)
+       ,.store_hit_tv(store_hit_tv)
+       ,.store_miss_tv(store_miss_tv)
+
+       ,.uncached_tv_r(uncached_tv_r)
+
+       ,.lr_op_tv_r(lr_op_tv_r)
        ,.lr_miss_tv(lr_miss_tv)
+       ,.lr_hit_tv(lr_hit_tv)
        ,.sc_op_tv_r(sc_op_tv_r)
+       ,.sc_fail(sc_fail)
        ,.sc_success(sc_success)
 
        ,.cache_req_v_o(cache_req_v_o)
        ,.cache_req_o(cache_req_o)
-
        ,.cache_req_metadata_o(cache_req_metadata_o)
        ,.cache_req_metadata_v_o(cache_req_metadata_v_o)
-
        ,.cache_req_complete_i(cache_req_complete_i)
 
        ,.v_o(v_o)
-       ,.load_data(data_o)
-       ,.cache_miss_o(dcache_miss_o)
-       ,.wt_req(wt_req)
-       ,.store_data(data_tv_r)
+       ,.data_o(data_o)
 
        ,.data_mem_pkt_v_i(data_mem_pkt_v_i)
        ,.data_mem_pkt_i(data_mem_pkt_i)
@@ -433,6 +446,9 @@ bind bp_be_top
        ,.stat_mem_pkt_v_i(stat_mem_pkt_v_i)
        ,.stat_mem_pkt_i(stat_mem_pkt_i)
        ,.stat_mem_pkt_yumi_o(stat_mem_pkt_yumi_o)
+
+       ,.wbuf_overflow(wbuf.overflow)
+       ,.wt_req(wt_req)
        );
 
   bind bp_fe_icache
