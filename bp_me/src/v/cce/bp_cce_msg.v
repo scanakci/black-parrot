@@ -762,6 +762,8 @@ module bp_cce_msg
                    | ~decoded_inst_i.pending_w_v)) begin
 
               lce_cmd_v_o = lce_cmd_ready_i;
+              // all commands set src, dst, message type and address
+              // defaults provided here, but may be overridden below
               lce_cmd.header.dst_id = lce_i;
               lce_cmd.header.msg_type = decoded_inst_i.lce_cmd;
               lce_cmd.header.src_id = cfg_bus_cast.cce_id;
@@ -771,14 +773,23 @@ module bp_cce_msg
                 lce_cmd.header.size = decoded_inst_i.msg_size;
                 lce_cmd.data[0+:`bp_cce_inst_gpr_width] = src_a_i;
               end else begin
+                // all commands set the way_id field
                 lce_cmd.header.way_id = way_i;
+
+                // commands including a set state operation set the state field
                 if ((decoded_inst_i.lce_cmd == e_lce_cmd_st)
-                    | (decoded_inst_i.lce_cmd == e_lce_cmd_st_wakeup)) begin
+                    | (decoded_inst_i.lce_cmd == e_lce_cmd_st_wakeup)
+                    | (decoded_inst_i.lce_cmd == e_lce_cmd_st_wb)
+                    | (decoded_inst_i.lce_cmd == e_lce_cmd_st_tr)
+                    | (decoded_inst_i.lce_cmd == e_lce_cmd_st_tr_wb)) begin
                   lce_cmd.header.state = coh_state_i;
                 end
-                // Transfer commands set target and target way fields
-                if (decoded_inst_i.lce_cmd == e_lce_cmd_tr) begin
-                  lce_cmd.header.state = coh_state_i;
+
+                // Transfer commands set target, target way, and target state fields
+                if ((decoded_inst_i.lce_cmd == e_lce_cmd_tr)
+                    | (decoded_inst_i.lce_cmd == e_lce_cmd_st_tr)
+                    | (decoded_inst_i.lce_cmd == e_lce_cmd_st_tr_wb)) begin
+                  lce_cmd.header.target_state = coh_state_i;
                   lce_cmd.header.target = mshr.lce_id;
                   lce_cmd.header.target_way_id = mshr.lru_way_id;
                 end
