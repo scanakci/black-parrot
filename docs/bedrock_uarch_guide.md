@@ -149,3 +149,92 @@ a single cycle to execute. Microcode instructions are 32-bits wide and tagged wi
 bits to enable fast branch detection and prediction in the fetch state, which are the branch
 and predict taken bit.
 
+The microcode instructions and formats are defined in [bp\_cce\_inst.vh](../bp_me/src/include/v/bp_cce_inst.vh).
+
+### Microcode Instruction Classes
+There are six different classes of instructions in BedRock's ISA.
+* ALU - basic ALU operations
+* Branch - control flow operations
+* Register/Data Movement - data movement between GPRs and other registers
+* Flag - ALU, data movement, and branch operations using flags as sources or destinations
+* Directory - Directory read, write, and processing
+* Queue - send and receive messages, wait for messages, and related operations
+
+### Microcode Instruction Listing
+The following subsections describe the available operations to the microcode programmer. Some
+operations provided are implemented through software transforms by the microcode assembler
+in order to reduce the actual CCE hardware complexity. This guide does not distinguish between
+hardware and software operations as the programmer may use all freely.
+
+#### ALU
+All ALU operations use GPRs as sources and destinations. Some instructions may use an immediate
+as a source. Arithmetic operations are unsigned and no overflow/underflow checking is provided.
+
+* add, sub, and, or, xor - unsigned add, unsigned sub, bit-wise and, or, xor
+* addi, subi, inc, dec - add or subtract with immediate; inc/dec fix immediate equal to 1
+* lsh, rsh, lshi, rshi - logical left and right shift
+* neg, not - bit-wise negation and logical negation
+
+#### Branch
+Branch operations redirect control flow. Most use GPRs as sources, although immediate and
+special registers may also be used by specific instructions.
+
+* bi - unconditional branch
+* beq, bne, blt, bgt, ble, bge - branch if two GPRs are: ==, !=, <, >, <=, >=
+* bs, bss - branch if equal with one or two operands as special registers
+* beqi, bz, bneqi, bnz - branch if GPR == or != to immediate; bz and bnz set immediate to 0
+* bsi - branch if special register equal to immediate
+
+#### Register/Data Movement
+Data movement operations transfer data between register types. There is also an operation to
+clear the CCE's MSHR.
+
+* mov - move GPR to GPR
+* movsg, movgs - move special register to/from GPR
+* movfg, movgf - move flag register to/from GPR
+* movpg, movgp - move param register to/from GPR
+* movi, movis, movip - move immediate to GPR, special, or param register
+* clm - clear MSHR
+* ld\_flags, ld\_flags\_i - set all flags from low bits of GPR or immediate
+* clf - clear MSHR.flags
+
+#### Flag
+Flag operations set or clear flags, perform ALU operations on flags, or make control flow decisions
+based on the value of specific flags.
+
+* sf, sfz - set flag to 1 or 0
+* andf, orf, nandf, norf - logical and, or, nand, nor of two flags into a GPR
+* notf - logical not of flag to GPR
+* bf - branch if (MSHR.flags & immediate) == immediate
+* bfz - branch if (MSHR.flags & immediate) == 0
+* bfnz - branch if (MSHR.flags & immediate) != 0
+* bfnot - branch if (MSHR.flags & immediate) != immediate
+
+#### Directory
+Directory operations read and write the directory or pending bits and trigger the GAD unit.
+
+* rdp - read pending bit
+* rdw - read full way group from directory
+* rde - read directory entry
+* wdp - write pending bit
+* clp - clear pending bit
+* clr - clear a physical directory RAM row
+* wde - write new tag and coherence state to specified directory entry
+* wds - write new coherence state to specified directory entry
+* gad - invoke GAD module
+
+#### Queue
+Queue operations send and receive messages. Special operations exist to wait for a valid message,
+access speculative bits, or to invoke the message unit to efficiently send invalidations.
+
+* wfq - wait for valid message on one or more input queues
+* pushq - send message
+* popq - dequeue message
+* poph - pop header information from inbound message, but do not dequeue message
+* popd - pop data from inbound message to GPR, but do not dequeue message
+* specq - operate on speculative memory access management bits
+* inv - invoke message unit to send invalidations to LCEs marked as sharers in sharers vectors
+
+### Microcode Programmer's Guide
+Coming Soon!
+
