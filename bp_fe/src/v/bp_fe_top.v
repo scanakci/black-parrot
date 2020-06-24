@@ -69,6 +69,7 @@ module bp_fe_top
    );
 
 `declare_bp_fe_be_if(vaddr_width_p, paddr_width_p, asid_width_p, branch_metadata_fwd_width_p);
+`declare_bp_cfg_bus_s(vaddr_width_p, core_id_width_p, cce_id_width_p, lce_id_width_p, cce_pc_width_p, cce_instr_width_p);
 `declare_bp_fe_mem_structs(vaddr_width_p, icache_sets_p, icache_block_width_p, vtag_width_p, ptag_width_p)
 
 bp_fe_mem_cmd_s  mem_cmd_lo;
@@ -104,24 +105,77 @@ bp_fe_pc_gen
    ,.fe_queue_ready_i(fe_queue_ready_i)
    );
 
-bp_fe_mem
+bp_cfg_bus_s cfg_bus_cast_i;
+assign cfg_bus_cast_i = cfg_bus_i;
+
+logic instr_page_fault_lo, instr_access_fault_lo, icache_miss_lo, itlb_miss_lo;
+
+logic fetch_ready;
+wire itlb_fence_v = mem_cmd_v_lo & (mem_cmd_lo.op == e_fe_op_tlb_fence);
+wire itlb_fill_v  = mem_cmd_v_lo & (mem_cmd_lo.op == e_fe_op_tlb_fill);
+wire fetch_v      = fetch_ready & mem_cmd_v_lo & (mem_cmd_lo.op == e_fe_op_fetch);
+wire fencei_v     = fetch_ready & mem_cmd_v_lo & (mem_cmd_lo.op == e_fe_op_icache_fence);
+
+bp_fe_tlb_entry_s itlb_r_entry;
+logic itlb_r_v_lo;
+bp_tlb
+ #(.bp_params_p(bp_params_p), .tlb_els_p(itlb_els_p))
+ itlb
+  (.clk_i(clk_i)
+   ,.reset_i(reset_i)
+   ,.flush_i(itlb_fence_v)
+   ,.translation_en_i(mem_translation_en_lo)
+
+   ,.v_i(fetch_v | itlb_fill_v)
+   ,.w_i(itlb_fill_v)
+   ,.vtag_i(itlb_fill_v ? mem_cmd_lo.operands.fill.vtag : mem_cmd_lo.operands.fetch.vaddr.tag)
+   ,.entry_i(mem_cmd_lo.operands.fill.entry)
+
+   ,.v_o(itlb_r_v_lo)
+   ,.miss_v_o(itlb_miss_lo)
+   ,.entry_o(itlb_r_entry)
+   );
+
+wire [ptag_width_p-1:0] ptag_li     = itlb_r_entry.ptag;
+wire                    ptag_v_li   = itlb_r_v_lo;
+
+logic uncached_li;
+bp_pma
  #(.bp_params_p(bp_params_p))
- mem
+ pma
+  (.ptag_v_i(ptag_v_li)
+   ,.ptag_i(ptag_li)
+
+   ,.uncached_o(uncached_li)
+   );
+
+logic [instr_width_p-1:0] icache_data_lo;
+logic                     icache_data_v_lo;
+
+logic instr_access_fault_v, instr_page_fault_v;
+bp_fe_icache 
+ #(.bp_params_p(bp_params_p)) 
+ icache
   (.clk_i(clk_i)
    ,.reset_i(reset_i)
 
    ,.cfg_bus_i(cfg_bus_i)
 
-   ,.mem_cmd_i(mem_cmd_lo)
-   ,.mem_cmd_v_i(mem_cmd_v_lo)
-   ,.mem_cmd_yumi_o(mem_cmd_yumi_li)
+   ,.vaddr_i(mem_cmd_lo.operands.fetch.vaddr)
+   ,.vaddr_v_i(fetch_v)
+   ,.fencei_v_i(fencei_v)
+   ,.vaddr_ready_o(fetch_ready)
 
-   ,.mem_priv_i(mem_priv_lo)
-   ,.mem_translation_en_i(mem_translation_en_lo)
-   ,.mem_poison_i(mem_poison_lo)
+   ,.ptag_i(ptag_li)
+   ,.ptag_v_i(ptag_v_li)
+   ,.uncached_i(uncached_li)
+   ,.poison_i(mem_poison_lo | instr_access_fault_v | instr_page_fault_v)
 
-   ,.mem_resp_o(mem_resp_li)
-   ,.mem_resp_v_o(mem_resp_v_li)
+   ,.data_o(icache_data_lo)
+   ,.data_v_o(icache_data_v_lo)
+   ,.miss_o()
+
+   // LCE Interface
 
    ,.cache_req_o(cache_req_o)
    ,.cache_req_v_o(cache_req_v_o)
@@ -147,5 +201,52 @@ bp_fe_mem
    ,.stat_mem_pkt_yumi_o(stat_mem_pkt_yumi_o)
    ,.stat_mem_o(stat_mem_o)
    );
+
+logic fetch_v_r, fetch_v_rr;
+logic itlb_miss_r;
+logic instr_access_fault_r, instr_page_fault_r;
+always_ff @(posedge clk_i)
+  begin
+    if(reset_i) begin
+      itlb_miss_r <= '0;
+      fetch_v_r   <= '0;
+      fetch_v_rr  <= '0;
+
+      instr_access_fault_r <= '0;
+      instr_page_fault_r   <= '0;
+    end
+    else begin
+      fetch_v_r   <= fetch_v;
+      fetch_v_rr  <= fetch_v_r & ~mem_poison_lo;
+      itlb_miss_r <= itlb_miss_lo & ~mem_poison_lo;
+
+      instr_access_fault_r <= instr_access_fault_v & ~mem_poison_lo;
+      instr_page_fault_r   <= instr_page_fault_v & ~mem_poison_lo;
+    end
+  end
+
+wire instr_priv_page_fault = ((mem_priv_lo == `PRIV_MODE_S) & itlb_r_entry.u)
+                               | ((mem_priv_lo == `PRIV_MODE_U) & ~itlb_r_entry.u);
+wire instr_exe_page_fault = ~itlb_r_entry.x;
+
+// Fault if in uncached mode but access is not for an uncached address
+wire is_uncached_mode = (cfg_bus_cast_i.icache_mode == e_lce_mode_uncached);
+wire mode_fault_v = (is_uncached_mode & ~uncached_li);
+// TODO: Enable other domains by setting enabled dids with cfg_bus
+wire did_fault_v = (ptag_li[ptag_width_p-1-:io_noc_did_width_p] != '0);
+// Don't allow speculative access to local tile memory
+wire local_fault_v = (ptag_li < (dram_base_addr_gp >> page_offset_width_p));
+assign instr_access_fault_v = fetch_v_r & (mode_fault_v | did_fault_v | local_fault_v);
+assign instr_page_fault_v   = fetch_v_r & itlb_r_v_lo & mem_translation_en_lo & (instr_priv_page_fault | instr_exe_page_fault);
+
+assign mem_cmd_yumi_li = itlb_fence_v | itlb_fill_v | fetch_v | fencei_v;
+
+assign mem_resp_v_li = fetch_v_rr;
+assign mem_resp_li = '{instr_access_fault: instr_access_fault_r
+                       ,instr_page_fault : instr_page_fault_r
+                       ,itlb_miss        : itlb_miss_r
+                       ,icache_miss      : fetch_v_rr & ~icache_data_v_lo
+                       ,data             : icache_data_lo
+                       };
 
 endmodule
