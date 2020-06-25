@@ -533,87 +533,87 @@ bind bp_be_top
      ,.mem_resp_yumi_i(proc_mem_resp_yumi_lo)
      );
 
-  bind bp_core_minimal
-    bp_nonsynth_core_profiler
-     #(.bp_params_p(bp_params_p))
-     core_profiler
-      (.clk_i(clk_i & (testbench.core_profile_p == 1))
-       ,.reset_i(reset_i)
-       ,.freeze_i(be.be_checker.scheduler.int_regfile.cfg_bus.freeze)
+  //bind bp_core_minimal
+  //  bp_nonsynth_core_profiler
+  //   #(.bp_params_p(bp_params_p))
+  //   core_profiler
+  //    (.clk_i(clk_i & (testbench.core_profile_p == 1))
+  //     ,.reset_i(reset_i)
+  //     ,.freeze_i(be.be_checker.scheduler.int_regfile.cfg_bus.freeze)
 
-       ,.mhartid_i(be.be_checker.scheduler.int_regfile.cfg_bus.core_id)
+  //     ,.mhartid_i(be.be_checker.scheduler.int_regfile.cfg_bus.core_id)
 
-       ,.fe_wait_stall(fe.pc_gen.is_wait)
-       ,.fe_queue_stall(~fe.pc_gen.fe_queue_ready_i)
+  //     ,.fe_wait_stall(fe.pc_gen.is_wait)
+  //     ,.fe_queue_stall(~fe.pc_gen.fe_queue_ready_i)
 
-       ,.itlb_miss(fe.itlb_miss_r)
-       ,.icache_miss(~fe.icache.vaddr_ready_o | fe.pc_gen.icache_miss)
-       ,.icache_fence(fe.icache.fencei_req)
-       ,.branch_override(fe.pc_gen.ovr_taken & ~fe.pc_gen.ovr_ret)
-       ,.ret_override(fe.pc_gen.ovr_ret)
+  //     ,.itlb_miss(fe.itlb_miss_r)
+  //     ,.icache_miss(~fe.icache.vaddr_ready_o | fe.pc_gen.icache_miss)
+  //     ,.icache_fence(fe.icache.fencei_req)
+  //     ,.branch_override(fe.pc_gen.ovr_taken & ~fe.pc_gen.ovr_ret)
+  //     ,.ret_override(fe.pc_gen.ovr_ret)
 
-       ,.fe_cmd(fe.pc_gen.fe_cmd_yumi_o & ~fe.pc_gen.attaboy_v)
+  //     ,.fe_cmd(fe.pc_gen.fe_cmd_yumi_o & ~fe.pc_gen.attaboy_v)
 
-       ,.mispredict(be.be_checker.director.npc_mismatch_v)
-       ,.target(be.be_checker.director.isd_status.isd_pc)
+  //     ,.mispredict(be.be_checker.director.npc_mismatch_v)
+  //     ,.target(be.be_checker.director.isd_status.isd_pc)
 
-       ,.dtlb_miss(be.be_mem.dtlb_miss_r)
-       ,.dcache_miss(~be.be_mem.dcache.ready_o)
-       ,.long_haz(be.be_checker.detector.long_haz_v)
-       ,.exception(be.be_checker.director.trap_pkt.exception)
-       ,.eret(be.be_checker.director.trap_pkt.eret)
-       ,._interrupt(be.be_checker.director.trap_pkt._interrupt)
-       ,.control_haz(be.be_checker.detector.control_haz_v)
-       ,.data_haz(be.be_checker.detector.data_haz_v)
-       ,.load_dep((be.be_checker.detector.dep_status_li[0].mem_iwb_v
-                   | be.be_checker.detector.dep_status_li[1].mem_iwb_v
-                   ) & be.be_checker.detector.data_haz_v
-                  )
-       ,.mul_dep((be.be_checker.detector.dep_status_li[0].mul_iwb_v
-                  | be.be_checker.detector.dep_status_li[1].mul_iwb_v
-                  | be.be_checker.detector.dep_status_li[2].mul_iwb_v
-                  ) & be.be_checker.detector.data_haz_v
-                 )
-       ,.struct_haz(be.be_checker.detector.struct_haz_v)
+  //     ,.dtlb_miss(be.be_mem.dtlb_miss_r)
+  //     ,.dcache_miss(~be.be_mem.dcache.ready_o)
+  //     ,.long_haz(be.be_checker.detector.long_haz_v)
+  //     ,.exception(be.be_checker.director.trap_pkt.exception)
+  //     ,.eret(be.be_checker.director.trap_pkt.eret)
+  //     ,._interrupt(be.be_checker.director.trap_pkt._interrupt)
+  //     ,.control_haz(be.be_checker.detector.control_haz_v)
+  //     ,.data_haz(be.be_checker.detector.data_haz_v)
+  //     ,.load_dep((be.be_checker.detector.dep_status_li[0].mem_iwb_v
+  //                 | be.be_checker.detector.dep_status_li[1].mem_iwb_v
+  //                 ) & be.be_checker.detector.data_haz_v
+  //                )
+  //     ,.mul_dep((be.be_checker.detector.dep_status_li[0].mul_iwb_v
+  //                | be.be_checker.detector.dep_status_li[1].mul_iwb_v
+  //                | be.be_checker.detector.dep_status_li[2].mul_iwb_v
+  //                ) & be.be_checker.detector.data_haz_v
+  //               )
+  //     ,.struct_haz(be.be_checker.detector.struct_haz_v)
 
-       ,.reservation(be.be_calculator.reservation_n)
-       ,.commit_pkt(be.be_calculator.commit_pkt)
-       ,.trap_pkt(be.be_mem.csr.trap_pkt_o)
-       );
+  //     ,.reservation(be.be_calculator.reservation_n)
+  //     ,.commit_pkt(be.be_calculator.commit_pkt)
+  //     ,.trap_pkt(be.be_mem.csr.trap_pkt_o)
+  //     );
 
-  bind bp_core_minimal
-    bp_nonsynth_pc_profiler
-     #(.bp_params_p(bp_params_p))
-     pc_profiler
-      (.clk_i(clk_i & (testbench.core_profile_p == 1))
-       ,.reset_i(reset_i)
-       ,.freeze_i(be.be_checker.scheduler.int_regfile.cfg_bus.freeze)
+  //bind bp_core_minimal
+  //  bp_nonsynth_pc_profiler
+  //   #(.bp_params_p(bp_params_p))
+  //   pc_profiler
+  //    (.clk_i(clk_i & (testbench.core_profile_p == 1))
+  //     ,.reset_i(reset_i)
+  //     ,.freeze_i(be.be_checker.scheduler.int_regfile.cfg_bus.freeze)
 
-       ,.mhartid_i(be.be_checker.scheduler.int_regfile.cfg_bus.core_id)
+  //     ,.mhartid_i(be.be_checker.scheduler.int_regfile.cfg_bus.core_id)
 
-       ,.commit_pkt(be.be_calculator.commit_pkt)
+  //     ,.commit_pkt(be.be_calculator.commit_pkt)
 
-       ,.program_finish_i(testbench.program_finish_lo | testbench.cosim_finish_lo)
-       );
+  //     ,.program_finish_i(testbench.program_finish_lo | testbench.cosim_finish_lo)
+  //     );
 
-  bind bp_be_director
-    bp_nonsynth_branch_profiler
-     #(.bp_params_p(bp_params_p))
-     pc_profiler
-      (.clk_i(clk_i & (testbench.core_profile_p == 1))
-       ,.reset_i(reset_i)
-       ,.freeze_i(cfg_bus_cast_i.freeze)
+  //bind bp_be_director
+  //  bp_nonsynth_branch_profiler
+  //   #(.bp_params_p(bp_params_p))
+  //   pc_profiler
+  //    (.clk_i(clk_i & (testbench.core_profile_p == 1))
+  //     ,.reset_i(reset_i)
+  //     ,.freeze_i(cfg_bus_cast_i.freeze)
 
-       ,.mhartid_i(cfg_bus_cast_i.core_id)
+  //     ,.mhartid_i(cfg_bus_cast_i.core_id)
 
-       ,.fe_cmd_o(fe_cmd_o)
-       ,.fe_cmd_v_o(fe_cmd_v_o)
-       ,.fe_cmd_ready_i(fe_cmd_ready_i)
+  //     ,.fe_cmd_o(fe_cmd_o)
+  //     ,.fe_cmd_v_o(fe_cmd_v_o)
+  //     ,.fe_cmd_ready_i(fe_cmd_ready_i)
 
-       ,.commit_v_i(commit_pkt.instret)
+  //     ,.commit_v_i(commit_pkt.instret)
 
-       ,.program_finish_i(testbench.program_finish_lo | testbench.cosim_finish_lo)
-       );
+  //     ,.program_finish_i(testbench.program_finish_lo | testbench.cosim_finish_lo)
+  //     );
 
   if (cce_trace_p) begin : cce_tracer
   bind bp_cce_wrapper
